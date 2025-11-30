@@ -198,7 +198,7 @@ def start_ssh_tunnel(host_info, key_path):
         return None
 
 # ==================== SELECT HOST MENU ====================
-def select_host_menu(hosts, auto_select_tag="_PRIME", timeout=5):
+def select_host_menu(hosts, auto_select_tag="_PRIME", timeout=10):
     if not hosts:
         print(color("✗") + " No hosts found in SSH config!")
         return None
@@ -397,3 +397,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
