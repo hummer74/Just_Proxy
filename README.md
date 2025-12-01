@@ -219,7 +219,3 @@ If this project helped you, please give it a star! ⭐
 ---
 
 **Disclaimer**: Use responsibly and in compliance with all applicable laws and regulations.
-
-```
-
-
