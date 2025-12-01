@@ -1,19 +1,13 @@
 @echo off
 cd /d "%~dp0"
-
+:: Creating virtual environment...
 echo Creating virtual environment...
 python -m venv venv
-
+:: Activating virtual environment...
 echo Activating virtual environment...
 call venv\Scripts\activate.bat
-
-echo Installing required packages...
-python.exe -m pip install --upgrade pip
-pip install paramiko cryptography
-
+:: Starting proxy...
 echo Starting proxy...
-python proxy_start.py
-timeout /t 3 /nobreak > nul
-call venv\Scripts\deactivate.bat
-rem pause
-timeout /t 10 /nobreak
+python proxy_start_v2.py
+timeout /t 5 /nobreak
+exit

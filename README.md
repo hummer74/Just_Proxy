@@ -1,156 +1,221 @@
-# Just Proxy - Менеджер SOCKS5 Прокси
+```markdown
+# Just Proxy
 
-Автоматизированный инструмент для Windows по созданию SOCKS5 прокси через SSH туннели и настройки системного прокси.
+🚀 **Windows SOCKS5 Proxy System via SSH Tunnel with PAC Auto-Configuration**
 
-## Возможности
+A lightweight, automated proxy solution for Windows that creates a SOCKS5 proxy through an SSH tunnel and automatically configures system-wide proxy settings using a PAC (Proxy Auto-Configuration) file.
 
-- 🔐 **Управление SSH-туннелями** - Автоматическое создание и управление SOCKS5 прокси через SSH
-- 🎯 **Умный выбор хоста** - Интерактивное меню с авто-выбором основных хостов
-- 🔄 **Авто-перезапуск** - Мониторинг и автоматическое восстановление разорванных SSH соединений
-- 🌐 **PAC конфигурация** - Генерация и раздача Proxy Auto-Configuration файлов
-- ⚡ **Системная интеграция** - Автоматическая настройка прокси в Windows
-- 🔒 **Безопасность** - Поддержка SSH ключей с опциональной защитой паролем
-- 📱 **Уведомления** - Toast-уведомления Windows о статусе подключения
+## ✨ Features
 
-## Требования
+- **Automatic SSH Tunnel Setup**: Connect to any SSH server from your SSH config file
+- **System Proxy Integration**: Automatically configures Windows proxy settings via PAC
+- **Intelligent Traffic Routing**: 
+  - Direct access for local/Russian/trusted domains
+  - Proxy routing for international traffic
+- **Secure Passphrase Management**: Optionally store SSH key passphrase in a local file
+- **Easy Host Selection**: Interactive menu with auto-selection capability
+- **Clean Background Operation**: Runs without visible windows
+- **One-Click Start/Stop**: Simple batch files for management
 
-- Windows 10/11 с установленным OpenSSH клиентом
-- Python 3.6+
-- Доступ по SSH к удаленным серверам с аутентификацией по ключам
+## 📋 Requirements
 
-## Установка
+- **Windows 10/11** (tested on Windows 10)
+- **Python 3.7+** (comes with Windows 11, install for Windows 10)
+- **OpenSSH Client** (available in Windows Features)
+- **SSH Config File** (`~/.ssh/config` with at least one host)
+- **SSH Private Key** (RSA/Ed25519 with or without passphrase)
 
-1. **Включите OpenSSH клиент** (Компоненты Windows):
-   - Параметры > Приложения > Дополнительные компоненты
-   - Добавьте "Клиент OpenSSH"
+## 🚀 Quick Start
 
-2. **Скачайте или клонируйте** репозиторий в удобное место
-
-3. **Настройте SSH хосты** в `config.ini` (см. раздел Конфигурация)
-
-## Конфигурация
-
-### SSH Конфиг (`config.ini`)
-
-Отредактируйте файл `config.ini` для добавления ваших SSH хостов:
-
-```ini
-Host HOST-ONE
-HostName your-server.com
-Port 22
-IdentitiesOnly yes
-IdentityFile C:\Users\User\.ssh\private_key
-User root
-ServerAliveInterval 30
+### 1. Clone & Navigate
+```bash
+git clone https://github.com/yourusername/Just_Proxy.git
+cd Just_Proxy
 ```
 
-**Специальные теги:**
-- Хосты с `_PRIME` в имени будут автоматически выбраны после таймаута
-- Поддерживается несколько хостов с разными конфигурациями
+### 2. Configure SSH (One-Time Setup)
 
-### SSH Ключи
+Ensure you have a valid SSH configuration:
 
-Разместите ваши приватные SSH ключи по указанным путям (обычно `C:\Users\Username\.ssh\`)
+1. **Enable OpenSSH Client**:
+   - Windows Settings → Apps → Optional Features → Add Feature → "OpenSSH Client"
 
-### Опционально: Пароль ключа
+2. **Configure SSH Host**:
+   Edit `~/.ssh/config` (create if it doesn't exist):
+   ```
+   Host my-server
+       HostName server.example.com
+       User yourusername
+       Port 22
+       IdentityFile ~/.ssh/id_rsa
+       IdentitiesOnly yes
+   ```
 
-Если ваш SSH ключ защищен паролем, добавьте его в `key_pass.txt` (простой текст, одна строка)
+3. **Optional**: For auto-selection, tag your primary host:
+   ```
+   Host my-server_PRIME  # Will auto-select after 30 seconds
+       HostName server.example.com
+       User yourusername
+       IdentityFile ~/.ssh/id_rsa
+   ```
 
-## Использование
+### 3. Configure Proxy Settings (Optional)
 
-### Запуск Прокси
+1. **Passphrase Storage** (if key has passphrase):
+   Create `key_pass` file in project root with your passphrase
 
-1. **Дважды кликните** `start_proxy.bat`
-2. **Выберите хост** из интерактивного меню (или дождитесь авто-выбора)
-3. **Система автоматически:**
-   - Создаст виртуальное окружение Python
-   - Установит необходимые пакеты
-   - Запустит SSH туннель
-   - Сгенерирует PAC файл
-   - Настроит системный прокси
-   - Начнет мониторинг соединения
+2. **Custom PAC Rules**:
+   Edit `proxy_back.pac` to modify proxy rules
 
-### Остановка Прокси
+### 4. Start Proxy
+```bash
+start_proxy.bat
+```
 
-1. **Дважды кликните** `stop_proxy.bat`
-2. **Система автоматически:**
-   - Завершит SSH туннели
-   - Остановит PAC HTTP сервер
-   - Восстановит оригинальные настройки прокси
-   - Очистит временные файлы
+### 5. Stop Proxy
+```bash
+stop_proxy.bat
+```
 
-## Структура Файлов
+## 🎯 How It Works
 
+### Architecture
+```
+┌─────────────┐    SSH Tunnel    ┌─────────────┐
+│  Your PC    │ ───────────────► │  SSH Server │
+│  (Client)   │   SOCKS5 1080    │  (Gateway)  │
+└─────────────┘                  └─────────────┘
+       │                                │
+       │ PAC: http://localhost:8088     │
+       │                                │
+┌─────────────┐                  ┌─────────────┐
+│  Windows    │                  │  Internet   │
+│ System Proxy│                  │             │
+└─────────────┘                  └─────────────┘
+```
+
+### Traffic Flow
+1. **Local/Direct Traffic**: `*.local`, `127.*`, `192.168.*`, Russian domains (`*.ru`, `*.рф`), VK, Yandex, DeepSeek
+2. **Proxied Traffic**: All other international traffic through SOCKS5
+
+## ⚙️ Configuration Files
+
+### `proxy_back.pac` - PAC Template
+```javascript
+function FindProxyForURL(url, host) {
+    // Local networks - no proxy
+    if (isPlainHostName(host) ||
+        shExpMatch(host, "127.*") ||
+        shExpMatch(host, "10.*") ||
+        shExpMatch(host, "192.168.*")) {
+        return "DIRECT";
+    }
+    
+    // Russian domains and services - no proxy
+    if (shExpMatch(host, "*.local") || shExpMatch(host, "*.LOCAL") ||
+        shExpMatch(host, "*.ru") || shExpMatch(host, "*.RU") ||
+        shExpMatch(host, "*.рф") || shExpMatch(host, "*.РФ") ||
+        shExpMatch(host, "vk.*") || shExpMatch(host, "VK.*") ||
+        shExpMatch(host, "*yandex*") || shExpMatch(host, "*YANDEX*") ||
+        shExpMatch(host, "deepseek.*") || shExpMatch(host, "DEEPSEEK.*")) {
+        return "DIRECT";
+    }
+    
+    // All other traffic through SOCKS5 proxy
+    return "SOCKS5 127.0.0.1:{port}";
+}
+```
+
+### File Structure
 ```
 Just_Proxy/
-├── start_proxy.bat          # Основной скрипт запуска
-├── stop_proxy.bat           # Скрипт остановки и очистки
-├── proxy_start.py           # Ядро управления прокси
-├── proxy_stop.py            # Очистка и восстановление
-├── config.ini              # Конфигурации SSH хостов
-├── key_pass.txt            # Пароль SSH ключа (опционально)
-├── proxy.pac               # Сгенерированный PAC файл
-├── proxy_state.json        # Трекинг состояния
-└── pac_http_server.json    # Информация о процессе HTTP сервера
+├── start_proxy.bat          # Launch script
+├── stop_proxy.bat           # Stop/cleanup script
+├── proxy_start_v2.py        # Main Python script
+├── proxy_stop.py           # Stop proxy Python script
+├── proxy_back.pac          # PAC template
+├── key_pass                # SSH passphrase (optional, create manually)
+├── proxy_state.json        # Generated: Current proxy state
+├── pac_http_server.json    # Generated: HTTP server PID
+└── proxy.pac               # Generated: Final PAC file
 ```
 
-## Как Это Работает
+## 🔧 Advanced Usage
 
-1. **SSH Туннель**: Создает SOCKS5 прокси на `127.0.0.1:1080`
-2. **PAC Файл**: Генерирует правила для маршрутизации трафика через прокси
-3. **HTTP Сервер**: Раздает PAC файл локально на порту `8088`
-4. **Системный Прокси**: Настраивает Windows на использование PAC файла
-5. **Мониторинг**: Постоянно проверяет здоровье туннеля и перезапускает при необходимости
+### Multiple SSH Configurations
+Add multiple hosts to `~/.ssh/config`:
+```ssh
+Host work-server
+    HostName work.example.com
+    User employee
+    IdentityFile ~/.ssh/work_key
 
-## PAC Правила
+Home home-server
+    HostName home.example.com
+    User admin
+    IdentityFile ~/.ssh/home_key
+    Port 2222
+```
 
-Сгенерированный PAC файл:
-- Направляет основной трафик через SOCKS5 прокси.
-- Локальные сети (`127.*`, `10.*`, `192.168.*`) - идут DIRECT, прокси не используется.
-- Российские домены (`*.ru`, `*yandex*`) - идут DIRECT, прокси не используется.
+### Custom Port Configuration
+Edit `proxy_start_v2.py`:
+```python
+config.proxy_port = 1080        # SOCKS5 proxy port
+config.pac_http_port = 8088     # Local HTTP server port
+```
 
-## Устранение Неполадок
+### Manual System Proxy Settings
+If automatic configuration fails:
+1. Open Windows Settings → Network & Internet → Proxy
+2. Set: "Use setup script"
+3. Address: `http://127.0.0.1:8088/proxy.pac`
+4. Save
 
-### Частые Проблемы
+## 🐛 Troubleshooting
 
-1. **"ssh.exe not found"**
-   - Включите OpenSSH клиент в Компонентах Windows
+### Common Issues
 
-2. **"Key file not found"**
-   - Проверьте пути `IdentityFile` в `config.ini`
-   - Убедитесь, что приватные ключи существуют по указанным путям
+| Problem | Solution |
+|---------|----------|
+| "ssh.exe not found" | Install OpenSSH Client via Windows Features |
+| "No hosts found" | Check `~/.ssh/config` file exists and has valid hosts |
+| "Permission denied" | Ensure SSH key has correct permissions (`chmod 600` in WSL) |
+| Connection timeout | Verify SSH server is accessible and credentials are correct |
+| PAC not working | Check if port 8088 is available, disable other proxy software |
 
-3. **Ошибки подключения**
-   - Проверьте доступность SSH сервера
-   - Убедитесь в правильности прав SSH ключей
-   - Проверьте правильность имени пользователя и порта
+### Debug Mode
+For detailed logging, edit `proxy_start_v2.py`:
+```python
+logging.basicConfig(
+    level=logging.DEBUG,  # Change from INFO to DEBUG
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+```
 
-4. **Прокси не работает**
-   - Сначала запустите `stop_proxy.bat` для сброса настроек
-   - Проверьте доступность порта 1080
-   - Проверьте настройки фаервола
+## 🔒 Security Notes
 
-### Ручной Сброс
+- **`key_pass` file**: Contains plaintext passphrase. Store securely or use SSH agent
+- **SSH Config**: Use `IdentitiesOnly yes` to prevent key scanning
+- **Local HTTP Server**: Runs only on `127.0.0.1:8088`, not exposed to network
+- **Cleanup**: `stop_proxy.bat` removes all temporary files and resets proxy settings
 
-Если скрипты завершились с ошибкой:
-1. Параметры Windows > Сеть и Интернет > Прокси-сервер
-2. Отключите "Использовать сценарий настройки"
-3. Запустите `stop_proxy.bat` для очистки процессов
+## 📝 License
 
-## Примечания по Безопасности
+MIT License - see [LICENSE](LICENSE) file for details
 
-- ⚠️ `key_pass.txt` содержит пароли в открытом виде - защитите этот файл
-- 🔑 Используйте надежные SSH ключи и парольные фразы
-- 🌐 Подключайтесь только к доверенным SSH серверам
-- 🛡️ Инструмент изменяет системные настройки прокси - понимайте последствия
+## 🤝 Contributing
 
-## Лицензия
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
 
-Проект предоставляется как есть для персонального и образовательного использования.
+## ⭐ Support
 
-## Поддержка
+If this project helped you, please give it a star! ⭐
 
-При возникновении проблем:
-1. Проверьте раздел устранения неполадок
-2. Убедитесь, что все требования выполнены
-3. Проверьте корректность SSH конфигурации
+---
+
+**Disclaimer**: Use responsibly and in compliance with all applicable laws and regulations.
+```
