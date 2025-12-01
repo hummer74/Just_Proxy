@@ -4,5 +4,12 @@ cd /d "%~dp0"
 echo Stopping SOCKS5 proxy...
 call venv\Scripts\activate.bat
 python proxy_stop.py
-timeout /t 1 /nobreak > nul
+
+:: Remove proxy shortcuts from Desktop
+echo Removing proxy shortcuts from Desktop...
+set desktop=%USERPROFILE%\Desktop
+del "%desktop%\!Proxy_Chrome.lnk" /f /q
+del "%desktop%\!Proxy_Edge.lnk" /f /q
+
+timeout /t 5 /nobreak > nul
 exit

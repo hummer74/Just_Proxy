@@ -17,6 +17,11 @@ from typing import Optional, Dict, List
 from dataclasses import dataclass
 import logging
 
+# ============ Additional imports for shortcuts ============
+import winshell
+from win32com.client import Dispatch
+
+
 # ============ LOGGING SETUP ============
 logging.basicConfig(
     level=logging.WARNING,
@@ -24,11 +29,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 # ============ DECORATION COLORS ============
 RED = "\033[31m"
 GREEN = "\033[32m"
 YELLOW = "\033[33m"
 RESET = "\033[0m"
+
 
 
 def color(sym: str) -> str:
@@ -40,6 +47,7 @@ def color(sym: str) -> str:
     if "⚠" in sym:
         return YELLOW + sym + RESET
     return sym
+
 
 
 # ============ CONFIGURATION ============
@@ -68,7 +76,9 @@ class Config:
         return True
 
 
+
 config = Config()
+
 
 
 # ==================== PASSPHRASE MANAGEMENT ====================
@@ -99,6 +109,7 @@ def load_passphrase_from_file() -> Optional[str]:
         return None
 
 
+
 # ==================== SSH AGENT DIRECTORY ====================
 def ensure_ssh_agent_dir() -> bool:
     """
@@ -114,6 +125,7 @@ def ensure_ssh_agent_dir() -> bool:
     except Exception as e:
         logger.error(f"Failed to create SSH agent directory: {e}")
         return False
+
 
 
 # ==================== VALIDATE SSH KEY ====================
@@ -152,6 +164,7 @@ def validate_key_file(key_path: str) -> Optional[str]:
     except Exception as e:
         logger.error(f"Error validating SSH key: {e}")
         return None
+
 
 
 # ==================== PARSING SSH CONFIG ====================
@@ -217,6 +230,7 @@ def parse_ssh_config(config_path: str) -> List[Dict[str, str]]:
         return []
 
 
+
 # ==================== SAVE STATE ====================
 def save_proxy_state(host_info: Dict, key_path: str, has_password: bool) -> bool:
     """
@@ -247,6 +261,7 @@ def save_proxy_state(host_info: Dict, key_path: str, has_password: bool) -> bool
     except Exception as e:
         logger.error(f"Failed to save proxy state: {e}")
         return False
+
 
 
 # ==================== PAC FILE FROM TEMPLATE ====================
@@ -295,6 +310,7 @@ def generate_pac_file_from_template(pac_path: str, port: int) -> bool:
         return False
 
 
+
 def generate_default_pac(port: int) -> str:
     """
     Generate default PAC content.
@@ -327,6 +343,7 @@ def generate_default_pac(port: int) -> str:
     // All other traffic through SOCKS5 proxy
     return "SOCKS5 127.0.0.1:{port}";
 }}'''
+
 
 
 # ==================== SYSTEM PROXY ====================
@@ -368,6 +385,7 @@ Get-Item -Path $regPath | Select-Object AutoConfigURL
     except Exception as e:
         logger.error(f"Failed to enable PAC proxy: {e}")
         return False
+
 
 
 # ==================== LOCAL HTTP SERVER ====================
@@ -427,6 +445,7 @@ def start_local_http_server(pac_path: str) -> Optional[int]:
         return None
 
 
+
 # ==================== BUILD SSH COMMAND ====================
 def build_ssh_command(host_info: Dict[str, str], key_path: str) -> List[str]:
     """
@@ -472,6 +491,7 @@ def build_ssh_command(host_info: Dict[str, str], key_path: str) -> List[str]:
         cmd.append(host_info.get('name', ''))
     
     return cmd
+
 
 
 # ==================== START SSH TUNNEL ====================
@@ -526,6 +546,10 @@ def start_ssh_tunnel(host_info: Dict[str, str], key_path: str, passphrase: Optio
         if proc.poll() is None:
             print(color("✓") + " SSH tunnel started (hidden mode)")
             logger.info(f"SSH tunnel established to {host_info.get('name')}")
+            
+            # Создание ярлыков для Chrome и Edge
+            create_proxy_shortcuts(config.proxy_port)
+            
             return proc
         else:
             err = proc.stderr.read().strip().decode(errors="ignore") if proc.stderr else "Unknown error"
@@ -541,6 +565,44 @@ def start_ssh_tunnel(host_info: Dict[str, str], key_path: str, passphrase: Optio
         logger.error(f"Failed to start SSH tunnel: {e}")
         print(color("✗") + f" Failed to start SSH tunnel: {e}")
         return None
+
+
+
+# ==================== SHORTCUT CREATION FUNCTIONS ====================
+def create_browser_shortcut(name: str, target_path: str, arguments: str, icon_path: str = None):
+    """Create desktop shortcut for browser."""
+    desktop = winshell.desktop()
+    shortcut_path = os.path.join(desktop, f"{name}.lnk")
+    shell = Dispatch('WScript.Shell')
+    shortcut = shell.CreateShortCut(shortcut_path)
+    shortcut.Targetpath = target_path
+    shortcut.Arguments = arguments
+    shortcut.WorkingDirectory = os.path.dirname(target_path)
+    if icon_path and os.path.exists(icon_path):
+        shortcut.IconLocation = icon_path
+    shortcut.save()
+
+
+def create_proxy_shortcuts(proxy_port: int):
+    """Create proxy shortcuts for Chrome and Edge on desktop."""
+    chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+    edge_path = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+
+    chrome_args = f'--proxy-server="socks5://127.0.0.1:{proxy_port}"'
+    edge_args = f'--proxy-server="socks5://127.0.0.1:{proxy_port}"'
+
+    if os.path.exists(chrome_path):
+        create_browser_shortcut("!Proxy_Chrome", chrome_path, chrome_args, chrome_path)
+        print(color("✓") + " Shortcut !Proxy_Chrome created on Desktop.")
+    else:
+        print(color("⚠") + " Chrome executable not found.")
+
+    if os.path.exists(edge_path):
+        create_browser_shortcut("!Proxy_Edge", edge_path, edge_args, edge_path)
+        print(color("✓") + " Shortcut !Proxy_Edge created on Desktop.")
+    else:
+        print(color("⚠") + " Edge executable not found.")
+
 
 
 # ==================== SELECT HOST MENU ====================
@@ -623,6 +685,7 @@ def select_host_menu(hosts, auto_select_tag="_PRIME", timeout=10):
         time.sleep(0.001)
 
 
+
 # ==================== SSH-AGENT ====================
 def ensure_ssh_agent(key_path: str, passphrase: Optional[str] = None) -> bool:
     """
@@ -690,6 +753,7 @@ def ensure_ssh_agent(key_path: str, passphrase: Optional[str] = None) -> bool:
         return False
 
 
+
 # ==================== ERROR HANDLER ====================
 def handle_error(msg: str, cleanup: bool = True) -> None:
     """
@@ -717,6 +781,7 @@ def handle_error(msg: str, cleanup: bool = True) -> None:
             print(color("⚠") + " stop_proxy.bat not found!")
     
     sys.exit(1)
+
 
 
 # ==================== MAIN ====================
@@ -810,12 +875,15 @@ def main() -> None:
         
         logger.info("Proxy setup complete - running in background")
 
+
         # Готово: окно сразу закроется!
         return
+
 
     except Exception as e:
         logger.error(f"Unexpected error in main: {e}", exc_info=True)
         handle_error(f"Unexpected error: {e}")
+
 
 
 if __name__ == "__main__":
