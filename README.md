@@ -53,7 +53,7 @@ Ensure you have a valid SSH configuration:
        IdentitiesOnly yes
    ```
 
-3. **Optional**: For auto-selection, tag your primary host:
+3. **Optional**: For auto-selection, tag your _PRIME host:
    ```
    Host my-server_PRIME  # Will auto-select after 30 seconds
        HostName server.example.com
@@ -222,3 +222,4 @@ If this project helped you, please give it a star! ⭐
 **Disclaimer**: Use responsibly and in compliance with all applicable laws and regulations.
 
 ```
+
