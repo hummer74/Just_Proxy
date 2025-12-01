@@ -2,7 +2,6 @@
 SOCKS5 System Proxy Creator with SSH Tunneling
 OPTIMIZED VERSION - Automatic passphrase, PAC from template, no windows, daemon mode
 """
-
 import os
 import os.path
 import subprocess
@@ -20,7 +19,7 @@ import logging
 
 # ============ LOGGING SETUP ============
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -545,54 +544,53 @@ def start_ssh_tunnel(host_info: Dict[str, str], key_path: str, passphrase: Optio
 
 
 # ==================== SELECT HOST MENU ====================
-def select_host_menu(hosts: List[Dict], auto_select_tag: str = "_PRIME", timeout: int = 30) -> Optional[Dict]:
-    """
-    Display interactive host selection menu.
-    
-    Args:
-        hosts: List of available hosts
-        auto_select_tag: Tag for automatic selection
-        timeout: Timeout for automatic selection in seconds
-        
-    Returns:
-        Selected host dictionary or None
-    """
+def select_host_menu(hosts, auto_select_tag="_PRIME", timeout=10):
     if not hosts:
-        logger.error("No hosts available for selection")
-        print(color("✗") + " No hosts found in SSH config!")
+        print("No hosts found in SSH config!")
         return None
-    
-    selected = 0
-    start_time = time.time()
+
+    # Ищем _PRIME хост и устанавливаем его как начальный выбор
     prime_index = next((i for i, h in enumerate(hosts) if auto_select_tag in h.get('name', '')), None)
-    
-    def draw_menu():
+    selected = prime_index if prime_index is not None else 0  # PRIME или первый хост
+
+    start_time = time.time()
+
+    def clear_screen():
         os.system('cls' if os.name == 'nt' else 'clear')
+
+    def print_menu():
+        # Print header and all hosts except timer line
         print("Select SSH host (↑↓ Arrow keys, Enter to select, Q to quit):")
         print("=" * 70)
-        
         for i, host in enumerate(hosts):
             marker = "►" if i == selected else " "
             hostname = host.get('HostName', 'N/A')
             port = host.get('Port', '22')
             user = host.get('User', 'root')
             keyfile = host.get('IdentityFile', 'N/A')
-            status_icon = color("✓") if os.path.exists(keyfile) else color("✗")
-            
+            status_icon = "✓" if os.path.exists(keyfile) else "✗"
             print(f"{marker} {host['name']} -> {user}@{hostname}:{port} [{status_icon} {os.path.basename(keyfile)}]")
-        
         print("=" * 70)
-        remaining = max(0, int(timeout - (time.time() - start_time)))
-        print(f"↑↓: Navigate | Enter: Select | Q: Quit | Auto-select in {remaining}s")
-    
-    draw_menu()
+        # Print empty line for timer (will be overwritten)
+        print()
+
+    def print_timer_line(remaining):
+        sys.stdout.write(f"\033[s")               # Save cursor position
+        sys.stdout.write(f"\033[{len(hosts)+4}A") # Move cursor up to timer line
+        sys.stdout.write("\r")                     # Carriage return
+        sys.stdout.write(f"↑↓: Navigate | Enter: Select | Q: Quit | Auto-select in {remaining}s\033[K")
+        sys.stdout.write(f"\033[u")               # Restore cursor position
+        sys.stdout.flush()
+
+    clear_screen()
+    print_menu()
     
     while True:
         if msvcrt.kbhit():
             key = msvcrt.getch()
             moved = False
-            
-            if key == b'\xe0':
+
+            if key == b'\xe0':  # arrow keys
                 arrow_key = msvcrt.getch()
                 if arrow_key == b'H':
                     selected = max(0, selected - 1)
@@ -600,25 +598,29 @@ def select_host_menu(hosts: List[Dict], auto_select_tag: str = "_PRIME", timeout
                 elif arrow_key == b'P':
                     selected = min(len(hosts) - 1, selected + 1)
                     moved = True
-            
             elif key == b'\r':
+                # Move cursor below before exit
+                sys.stdout.write(f"\033[{len(hosts)+5}B")
                 return hosts[selected]
-            
             elif key.lower() in (b'q', b'\x1b'):
-                logger.info("User cancelled host selection")
+                sys.stdout.write(f"\033[{len(hosts)+5}B")
                 return None
-            
+
             if moved:
-                draw_menu()
+                clear_screen()
+                print_menu()
+
+                # Reset timer start so countdown restarts after movement
                 start_time = time.time()
-        
-        else:
-            if prime_index is not None and (time.time() - start_time) >= timeout:
-                print(color("⚠") + f" No input detected. Auto-selecting: {hosts[prime_index]['name']}")
-                logger.info(f"Auto-selected host: {hosts[prime_index]['name']}")
-                return hosts[prime_index]
-            
-            time.sleep(0.05)
+
+        remaining = max(0, int(timeout - (time.time() - start_time)))
+        print_timer_line(remaining)
+
+        if prime_index is not None and remaining == 0:
+            print(f"\nNo input detected. Auto-selecting: {hosts[prime_index]['name']}")
+            return hosts[prime_index]
+
+        time.sleep(0.001)
 
 
 # ==================== SSH-AGENT ====================
@@ -714,7 +716,6 @@ def handle_error(msg: str, cleanup: bool = True) -> None:
             logger.warning("stop_proxy.bat not found")
             print(color("⚠") + " stop_proxy.bat not found!")
     
-    input("\nPress Enter to exit...")
     sys.exit(1)
 
 
