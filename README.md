@@ -3,7 +3,9 @@
 
 🚀 **Windows SOCKS5 Proxy System via SSH Tunnel with PAC Auto-Configuration**
 
-A lightweight, automated proxy solution for Windows that creates a SOCKS5 proxy through an SSH tunnel and automatically configures system-wide proxy settings using a PAC (Proxy Auto-Configuration) file.
+A lightweight, automated proxy solution for Windows
+that creates a SOCKS5 proxy through an SSH tunnel and automatically
+configures system-wide proxy settings using a PAC (Proxy Auto-Configuration) file.
 
 ## ✨ Features
 
@@ -218,4 +220,5 @@ If this project helped you, please give it a star! ⭐
 ---
 
 **Disclaimer**: Use responsibly and in compliance with all applicable laws and regulations.
+
 ```
