@@ -1,0 +1,24 @@
+function FindProxyForURL(url, host) {
+    host = host.toLowerCase();
+    
+    // Локальные адреса и частные сети
+    if (isPlainHostName(host) ||
+        shExpMatch(host, "127.*") ||
+        shExpMatch(host, "10.*") ||
+        shExpMatch(host, "192.168.*") ||
+        host === "localhost") {
+        return "DIRECT";
+    }
+
+    // Исключения по доменам
+    if (shExpMatch(host, "*.local") ||
+        shExpMatch(host, "*.ru") ||
+        shExpMatch(host, "*.vk.*") ||
+        shExpMatch(host, "*.yandex.*") ||
+        shExpMatch(host, "deepseek.com")) {
+        return "DIRECT";
+    }
+
+    // Все остальное через SOCKS5
+    return "SOCKS5 127.0.0.1:1080"; // Замените 1080 на ваш порт
+}
